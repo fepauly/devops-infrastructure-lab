@@ -1,0 +1,10 @@
+db:
+  hosts:
+    db-server:
+      ansible_host: 192.168.61.11
+      ansible_ssh_private_key_file: ~/.ssh/keys/db_key
+web:
+  hosts:
+    web-server:
+      ansible_host: 192.168.61.12
+      ansible_ssh_private_key_file: ~/.ssh/keys/web_key

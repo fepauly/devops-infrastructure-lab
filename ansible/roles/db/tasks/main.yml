@@ -1,0 +1,127 @@
+# Tasks for PostgreSQL database setup and configuration
+# This role prepares the database server for our Phoenix application.
+# And be aware that we are not using Docker for the database server in this setup.
+
+# First, we need to add the PostgreSQL repository to get version 14. 
+# We could use the default version 12 on Ubuntu 20.04 but lets go with the newer version
+- name: Add PostgreSQL apt signing key
+  ansible.builtin.apt_key:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    state: present
+  tags:
+    - db
+    - postgresql
+
+- name: Add PostgreSQL repository
+  ansible.builtin.apt_repository:
+    repo: "deb http://apt.postgresql.org/pub/repos/apt/ {{ ansible_distribution_release }}-pgdg main"
+    state: present
+    update_cache: yes
+  tags:
+    - db
+    - postgresql
+
+
+# So now lets install PostgreSQL and its dependencies
+- name: Install PostgreSQL and dependencies
+  ansible.builtin.apt:
+    name: 
+    - "postgresql-{{ postgresql_version }}"
+    - "postgresql-contrib"
+    - "python3-psycopg2"  # Required for Ansible PostgreSQL modules
+    state: present
+  tags:
+    - db
+    - postgresql
+
+
+# Now lets ensure the PostgreSQL service is running and enabled to start on boot
+- name: Ensure PostgreSQL service is started and enabled
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: yes # automatically starts on boot
+  tags:
+    - db
+    - postgresql
+
+# One important step now is to ensure PostgreSQL listens on all interfaces. 
+# This is necessary for remote connections, especially in a Docker setup.
+# Otherwise, it would only listen on localhost.
+- name: Ensure PostgreSQL listens on all interfaces
+  ansible.builtin.lineinfile:
+    path: "/etc/postgresql/{{ postgresql_version }}/main/postgresql.conf"
+    regexp: "^#?listen_addresses\\s*=.*$"
+    line: "listen_addresses = '*'"
+    state: present
+  notify: Restart PostgreSQL
+  tags:
+    - db
+    - postgresql
+    - configuration
+
+# And another important step before creating the database is to configure the client authentication.
+# This allows password authentication from our Vagrant network.
+# As you can see, we are allowing connections from the IP range that we setup in the Vagrantfile.
+# Also we are using md5 password authentication, which is a common choice.
+- name: Configure PostgreSQL client authentication
+  ansible.builtin.lineinfile:
+    path: "/etc/postgresql/{{ postgresql_version }}/main/pg_hba.conf"
+    insertafter: "^# IPv4 local connections:"
+    line: "host    all             all             192.168.61.0/24          md5"
+    state: present
+  notify: Restart PostgreSQL
+  tags:
+    - database
+    - postgresql
+    - configuration
+
+# Now lets finally create our database
+# We are using the community.postgresql.postgresql_db module to create the database.
+- name: Create PostgreSQL database
+  become: true
+  become_user: postgres # Now in case of PostgreSQL, we need to run commands as the postgres user
+  community.postgresql.postgresql_db:
+    name: "{{ postgresql_database }}"
+    # Setting encoding and locale ensures proper text handling
+    encoding: "{{ postgresql_encoding }}" 
+    lc_collate: "{{ postgresql_locale }}"
+    lc_ctype: "{{ postgresql_locale }}"
+    # Using template0 ensures a clean database creation, especially with custom locales
+    # Now why do we need custom locales? Well, that is kind of another topic, but in short:
+    # PostgreSQL uses locales to determine how text is sorted and compared.
+    # And with `en_US.UTF-8` we ensure that our database handles text in a way that is consistent with the english language.
+    template: template0 
+    state: present
+  tags:
+    - database
+    - postgresql
+
+# And finally we can create our database user with full privileges on the database.
+# For production, we would only grant privileges that are necessary for the application.
+- name: Create PostgreSQL user
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    login_db: "{{ postgresql_database }}"
+    name: "{{ postgresql_user }}"
+    password: "{{ postgresql_password }}"
+    state: present
+  tags:
+    - database
+    - postgresql
+
+# Then grant privileges using the dedicated privileges module
+- name: Grant privileges to PostgreSQL user
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_privs:
+    login_db: "{{ postgresql_database }}"
+    roles: "{{ postgresql_user }}"
+    type: database
+    privs: ALL
+    state: present
+  tags:
+    - database
+    - postgresql
+    

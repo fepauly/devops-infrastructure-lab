@@ -1,0 +1,47 @@
+# Common configuration tasks applied to all servers
+# This role establishes the baseline system configuration for all servers.
+# Which is a good thing to do to ensure consistency across your infrastructure!
+
+# Lets first update the package cache
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600  # Only update if cache is older than 1 hour
+  tags:
+    - always # This task will always run, even if you specify other tags with `--tags` or `--skip-tags`
+    - system # This defines this task as a system-level task, which is very helpful to organise your tasks
+
+# And then upgrade our packages to the latest version using the `safe` strategy.
+# This is something that might not always be wanted
+- name: Upgrade all packages to the latest version
+  ansible.builtin.apt:
+    upgrade: safe
+  tags:
+    - system
+    - security 
+
+# Now we install common packages that provide essential functionality
+- name: Install common packages
+  ansible.builtin.apt:
+    name:
+      - vim
+      - htop
+      - curl
+      - git
+      - unzip
+      - net-tools
+      - ca-certificates
+      - apt-transport-https
+      - python3-pip
+    state: present # Ensure these packages are installed
+  tags: 
+    - system
+    - packages
+
+# And last but not least lets set the timezone for consistency accross our servers
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ timezone }}"
+  tags:
+    - system
+    - configuration

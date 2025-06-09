@@ -1,0 +1,8 @@
+# This is a handler we define for the PostgreSQL role.
+# Handlers run only when notified by a task and that task made a change
+# AND only only once per playbook run, even if multiple tasks notify the same handler.
+
+- name: Restart PostgreSQL
+  ansible.builtin.service:
+    name: postgresql
+    state: restarted

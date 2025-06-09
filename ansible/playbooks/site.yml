@@ -1,0 +1,30 @@
+# Main Playbook that orchestrates the entire infrastructure setup
+# This also serves as the entry point for configuring all servers
+
+# Lets first apply the common configuration to all hosts
+- name: Apply common configuration to all hosts
+  hosts: all
+  become: true # Used to run tasks with elevated privileges
+  roles:
+    - common
+
+# Now lets configure the database server and install PostgreSQL
+- name: Configure PostgreSQL database server
+  hosts: db
+  become: true
+  roles:
+    - db
+
+# Now lets configure the web server and install Docker
+- name: Configure web server and install Docker
+  hosts: web
+  become: true
+  roles:
+    - docker
+
+# Last but not least lets deploy the elixir phoenix web application
+- name: Deploy Elixir Phoenix web application
+  hosts: web
+  become: true
+  roles:
+    - app

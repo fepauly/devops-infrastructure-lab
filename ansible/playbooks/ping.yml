@@ -1,0 +1,13 @@
+# This is a simple ping playbook to test connectivity and Ansible setup
+- name: Ping test
+  hosts: all
+  gather_facts: no # Not needed for this simple test and speeds up execution
+  tasks:
+    - name: Ping the host
+      # Careful, this is the built-in ansible ping module
+      # It is not a real ICMP ping but a simple connectivity check
+      ansible.builtin.ping:
+
+    - name: Display a message
+      ansible.builtin.debug:
+        msg: "Ping successful on {{ inventory_hostname }}"

@@ -1,0 +1,21 @@
+# Common system settings for all hosts
+timezone: "Europe/Berlin"
+
+# PostgreSQL configuration
+postgresql_version: "14"
+postgresql_encoding: "UTF-8"
+postgresql_locale: "en_US.UTF-8"
+postgresql_database: "devops_lab"
+postgresql_user: "lab_user"
+postgresql_password: "lab_password"  # Obviously, use Ansible Vault in production!
+
+# Docker configuration
+docker_compose_version: "2.17.2"
+
+# Web app settings
+app_name: "devops_lab"
+app_port: 4000 # This is the default Phoenix port
+app_env: "dev"
+secret_key_base: "super_secret_key" # Obviously, use something secure in production!
+# The secret key base is needed for Phoenix applications to sign and encrypt session data.
+# During development, Phoenix generates a random key, but in production, you should set it to a secure value.
