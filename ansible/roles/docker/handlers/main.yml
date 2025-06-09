@@ -1,0 +1,7 @@
+# Handlers for the Docker role
+# These run only when notified and only if changes occurred
+
+- name: Restart Docker
+  ansible.builtin.service:
+    name: docker
+    state: restarted

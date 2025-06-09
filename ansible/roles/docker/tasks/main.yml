@@ -1,0 +1,81 @@
+# Docker installation and configurationt tasks for the web server
+# This role prepares the web server to run containerized apps
+# Thus, we're installing Docker CE from the official docker repository
+
+# First, we need to install prerequisites for Docker installation
+# I won't explain the details of each package here,
+# but they are necessary/helpful for the Docker installation process.
+- name: Install prerequisites for Docker
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+    state: present
+  tags:
+    - docker
+    - packages
+
+# Now we add the Docker GPG key to verify the packages
+# As we've done with the PostgreSQL repository,
+# this is necessary to ensure the authenticity of the Docker packages.
+- name: Add Docker GPG key
+  ansible.builtin.apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+  tags:
+    - docker
+    - repository
+
+# Now we are adding the official Docker repository to apt sources
+- name: Add Docker repository
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+    update_cache: yes  # Update package cache after adding the repository
+  tags:
+    - docker
+    - repository
+
+# And now we can install Docker and its dependencies
+- name: Install docker
+  ansible.builtin.apt:
+    name:
+      - docker-ce # Docker Community Edition engine
+      - docker-ce-cli # Docker CLI
+      - containerd.io # Container runtime
+      - docker-compose-plugin # Docker Compose V2 plugin
+    state: present
+  tags:
+    - docker
+    - packages
+
+# Now we ensure the Docker service is running and enabled to start on boot
+- name: Start and enable Docker service
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: yes  # Automatically starts on boot
+  notify: Restart Docker
+  tags:
+    - docker
+    - service
+
+# Now we add vagrant user to docker group for passwordless Docker commands
+# This is important to allow our vagrant user to run Docker commands without sudo
+# ATTENTION tho: In a production environment this could be a potential security risk,
+# as docker access kind of gives root access to the system. 
+# (A very interesting topic to research further btw, especially in corporate environments!)
+- name: Add vagrant user to docker group
+  ansible.builtin.user:
+    name: vagrant
+    groups: docker
+    append: yes  # Don't remove user from other groups
+  tags:
+    - docker
+    - configuration
+
+# Now, to have the docker group changes take effect, lets reset the SSH connection.
+- meta: reset_connection
