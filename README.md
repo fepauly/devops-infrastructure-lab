@@ -6,8 +6,7 @@ I tried to create it as a lab from which also other people might benefit from, s
 
 ## 🎬 Demo
 
-[![DevOps Lab Demo](demo/thumbnail.png)](demo/demo.mp4)
-
+![DevOps Lab Demo](demo/demo.gif)
 
 ## 🏗️ Architecture Overview
 
