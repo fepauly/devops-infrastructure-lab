@@ -7,15 +7,19 @@ postgresql_encoding: "UTF-8"
 postgresql_locale: "en_US.UTF-8"
 postgresql_database: "devops_lab"
 postgresql_user: "lab_user"
-postgresql_password: "lab_password"  # Obviously, use Ansible Vault in production!
+postgresql_password: "lab_password"  # Obviously, use something secure like Ansible Vault in production!
 
 # Docker configuration
 docker_compose_version: "2.17.2"
 
-# Web app settings
+# Flask web app settings
 app_name: "devops_lab"
-app_port: 4000 # This is the default Phoenix port
-app_env: "dev"
-secret_key_base: "super_secret_key" # Obviously, use something secure in production!
-# The secret key base is needed for Phoenix applications to sign and encrypt session data.
-# During development, Phoenix generates a random key, but in production, you should set it to a secure value.
+app_port: 5000 # Flask default port
+app_env: "development"
+flask_secret_key: "super_secret_key_change_in_production" # Obviusly, use something secure in production!
+
+# Docker container configuration
+nginx_port: 80 # Nginx reverse proxy port
+flask_container_name: "flask_app"
+nginx_container_name: "nginx_proxy"
+docker_network_name: "webapp_network"

@@ -1,0 +1,15 @@
+# Flask web framework and essential dependencies
+Flask==2.3.3
+Werkzeug==2.3.7
+
+# PostgreSQL database adapter for Python
+psycopg2-binary==2.9.7
+
+# Production WSGI server (alternative to Flask's dev server)
+gunicorn==21.2.0
+
+# Environment variable management
+python-dotenv==1.0.0
+
+# For better logging and debugging
+colorlog==6.7.0

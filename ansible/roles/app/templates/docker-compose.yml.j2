@@ -1,0 +1,86 @@
+# Docker Compose configuration for DevOps Lab Flask application
+# This orchestrates the Flask app and Nginx reverse proxy containers
+# As you can see this is a Jinja2 template for dynamic values
+# That means we can use Ansible variables to configure it!
+
+version: '3.8'
+
+services:
+  # Flask web application container
+  flask_app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: "{{ flask_container_name }}"
+    environment:
+      # Database connection configuration
+      - DB_HOST={{ hostvars['db-server']['ansible_host'] }}
+      - DB_NAME={{ postgresql_database }}
+      - DB_USER={{ postgresql_user }}
+      - DB_PASSWORD={{ postgresql_password }}
+      - DB_PORT=5432
+      # Flask application configuration
+      - FLASK_SECRET_KEY={{ flask_secret_key }}
+      - FLASK_ENV={{ app_env }}
+    networks:
+      - {{ docker_network_name }}
+    restart: unless-stopped
+    # Health check to ensure Flask is responding
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      - db_check
+
+  # Nginx reverse proxy container
+  nginx_proxy:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: "{{ nginx_container_name }}"
+    ports:
+      - "{{ nginx_port }}:80"
+    networks:
+      - {{ docker_network_name }}
+    depends_on:
+      - flask_app
+    restart: unless-stopped
+    # Health check for nginx
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/nginx-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Database connectivity check service
+  # This ensures database is reachable before starting Flask
+  # Careful, we are only using the postgres client tool here to check connectivity
+  # This is not a full database service, just a check :)
+  db_check:
+    image: postgres:14-alpine
+    container_name: "{{ app_name }}_db_check"
+    environment:
+      - PGPASSWORD={{ postgresql_password }}
+    networks:
+      - {{ docker_network_name }}
+    command: >
+      sh -c "
+        echo 'Checking database connectivity...' &&
+        until pg_isready -h {{ hostvars['db-server']['ansible_host'] }} -p 5432 -U {{ postgresql_user }}; do
+          echo 'Waiting for database...';
+          sleep 2;
+        done;
+        echo 'Database is ready!';
+        exit 0;
+      "
+    restart: "no"
+
+# Specify the network as external since it's created by Ansible
+# This tells Docker Compose not to try to create it but use the existing one
+# Tho, we could also create it here
+networks:
+  {{ docker_network_name }}:
+    external: true

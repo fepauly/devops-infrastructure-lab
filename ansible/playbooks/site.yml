@@ -15,15 +15,15 @@
   roles:
     - db
 
-# Now lets configure the web server and install Docker
+# Then we configure the web server and install Docker
 - name: Configure web server and install Docker
   hosts: web
   become: true
   roles:
     - docker
 
-# Last but not least lets deploy the elixir phoenix web application
-- name: Deploy Elixir Phoenix web application
+# Last but not least lets deploy the Flask web application with Docker and Docker Compose
+- name: Deploy Flask web application with Docker containers
   hosts: web
   become: true
   roles:

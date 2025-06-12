@@ -1,3 +1,4 @@
 .vagrant/
 .github/instructions/
 .vscode/
+.venv/

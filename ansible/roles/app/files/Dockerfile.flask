@@ -1,0 +1,44 @@
+# Use Python 3.11 slim image for smaller footprint
+FROM python:3.11-slim
+
+# Set working directory in container
+WORKDIR /app
+
+# Install system dependencies required for psycopg2 and health checks
+# These are needed to compile the PostgreSQL adapter and for container monitoring
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better Docker layer caching
+# This allows pip install to be cached if requirements don't change
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY app.py .
+
+# Create templates directory and copy templates
+# This ensures the templates directory exists inside the container
+RUN mkdir -p /app/templates
+COPY templates/ /app/templates/
+
+# Create non-root user for security
+# Running containers as root is a security risk
+RUN useradd --create-home --shell /bin/bash flask_user
+USER flask_user
+
+# Expose port 5000 for Flask application
+EXPOSE 5000
+
+# Health check to ensure container is responding
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:5000/health || exit 1
+
+# Use Gunicorn for production-ready WSGI server
+# Bind to all interfaces (0.0.0.0) to accept connections from nginx
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "app:app"]

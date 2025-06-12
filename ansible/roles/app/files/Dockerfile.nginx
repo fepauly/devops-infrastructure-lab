@@ -1,0 +1,21 @@
+# Use official Nginx image with Alpine for smaller footprint
+FROM nginx:alpine
+
+# Copy custom nginx configuration
+# This replaces the default nginx.conf with our reverse proxy config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Create directory for custom error pages (if needed in the future)
+RUN mkdir -p /usr/share/nginx/html
+
+# Expose port 80 for HTTP traffic
+EXPOSE 80
+
+# Health check to ensure nginx is responding
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost/nginx-health || exit 1
+
+# IMPORTANT not to run nginx in the background
+# This is required for Docker to manage the process correctly
+# Thus we use the -g "daemon off;" option
+CMD ["nginx", "-g", "daemon off;"]

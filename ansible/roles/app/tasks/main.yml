@@ -1,0 +1,127 @@
+# Tasks for deploying Flask web application with Docker containers
+# This role sets up a containerized Flask app with Nginx reverse proxy
+# The Flask app connects to the PostgreSQL database on the db server
+
+# First let's create the application directory structure
+- name: Create application directory
+  ansible.builtin.file:
+    path: /opt/{{ app_name }}
+    state: directory
+    owner: vagrant
+    group: vagrant
+    mode: '0755'
+  tags:
+    - app
+    - directory
+
+# Now we create subdirectories for an organized file structure
+# You can use this nice loop feature
+- name: Create application subdirectories
+  ansible.builtin.file:
+    path: "/opt/{{ app_name }}/{{ item }}"
+    state: directory
+    owner: vagrant
+    group: vagrant
+    mode: '0755'
+  loop:
+    - app
+    - app/templates
+    - nginx
+  tags:
+    - app
+    - directory
+
+# Now we copy the Flask application files to the server
+# Again with the loop feature
+- name: Copy Flask application
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "/opt/{{ app_name }}/{{ item.dest }}"
+    owner: vagrant
+    group: vagrant
+    mode: '0644'
+  loop:
+    - { src: "app.py", dest: "app/app.py" }
+    - { src: "requirements.txt", dest: "app/requirements.txt" }
+    - { src: "Dockerfile.flask", dest: "app/Dockerfile" }
+  tags:
+    - app
+    - files
+
+# We also need to copy the HTML template to Flask templates directory
+- name: Copy Flask HTML template
+  ansible.builtin.copy:
+    src: "index.html"
+    dest: "/opt/{{ app_name }}/app/templates/index.html"
+    owner: vagrant
+    group: vagrant
+    mode: '0644'
+  tags:
+    - app
+    - templates
+
+# And of course the Nginx configuration and Dockerfile
+- name: Copy Nginx configuration
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "/opt/{{ app_name }}/{{ item.dest }}"
+    owner: vagrant
+    group: vagrant
+    mode: '0644'
+  loop:
+    - { src: "nginx.conf", dest: "nginx/nginx.conf" }
+    - { src: "Dockerfile.nginx", dest: "nginx/Dockerfile" }
+  tags:
+    - app
+    - nginx
+
+# We copy the Docker Compose file for orchestrating our containers
+# And we use the template module to dynamically configure it
+# This allows us to use Ansible variables in the Docker Compose configuration
+- name: Copy Docker Compose configuration
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "/opt/{{ app_name }}/docker-compose.yml"
+    owner: vagrant
+    group: vagrant
+    mode: '0644'
+  tags:
+    - app
+    - docker-compose
+
+# Create Docker network for application containers
+# Using the community.docker.docker_network module for declarative management
+- name: Create Docker network
+  community.docker.docker_network:
+    name: "{{ docker_network_name }}"
+    driver: bridge
+    state: present
+  become_user: vagrant # We need to run this as the vagrant user
+  tags:
+    - app
+    - docker
+    - network
+
+# Now we can build and start the application containers using Docker Compose
+# We use shell commands for better compatibility and transparency
+# Docker Compose is idempotent - it will only recreate containers if needed
+- name: Start Flask application with Docker Compose
+  ansible.builtin.shell: "cd /opt/{{ app_name }} && docker compose up --build --detach"
+  become_user: vagrant
+  tags:
+    - app
+    - docker-compose
+    - deploy
+
+# Last but not least we ensure that our containers are running and are healthy
+# In this case we use a simple HTTP health check
+- name: Wait for Flask application to be ready
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:{{ nginx_port }}"
+    method: GET
+    status_code: 200
+  retries: 10
+  delay: 5
+  tags:
+    - app
+    - health-check

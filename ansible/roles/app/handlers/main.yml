@@ -1,0 +1,31 @@
+# Handlers for the Flask application role
+# These run only when notified and help manage the application lifecycle
+# Using shell commands for better compatibility and learning transparency
+
+- name: Restart Flask application
+  ansible.builtin.shell: |
+    cd /opt/{{ app_name }}
+    docker compose restart
+  become_user: vagrant
+  tags:
+    - app
+    - restart
+
+- name: Stop Flask application
+  ansible.builtin.shell: |
+    cd /opt/{{ app_name }}
+    docker compose down
+  become_user: vagrant
+  tags:
+    - app
+    - stop
+
+- name: Rebuild Flask application
+  ansible.builtin.shell: |
+    cd /opt/{{ app_name }}
+    docker compose down
+    docker compose up --build --detach
+  become_user: vagrant
+  tags:
+    - app
+    - rebuild
