@@ -4,6 +4,10 @@ This repository is representing a step on my own DevOps Roadmap. It demonstrates
 
 I tried to create it as a lab from which also other people might benefit from, so feel free to contribute! :wave:
 
+## 🎬 Demo
+
+[![DevOps Lab Demo](demo/thumbnail.png)](demo/demo.mp4)
+
 
 ## 🏗️ Architecture Overview
 
